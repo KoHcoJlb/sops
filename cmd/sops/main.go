@@ -698,6 +698,10 @@ func main() {
 			Name:  "output",
 			Usage: "Save the output after encryption or decryption to the file specified",
 		},
+		cli.StringFlag{
+			Name:  "file",
+			Usage: "Specify file path when reading from stdout for use in config lookup",
+		},
 	}, keyserviceFlags...)
 
 	app.Action = func(c *cli.Context) error {
@@ -712,6 +716,7 @@ func main() {
 		}
 
 		fileName := c.Args()[0]
+		var realFileName string
 		if fileName != "-" {
 			fileName, err := filepath.Abs(fileName)
 			if err != nil {
@@ -726,6 +731,10 @@ func main() {
 					return common.NewExitError("Error: cannot operate on non-existent file", codes.NoFileSpecified)
 				}
 			}
+			realFileName = fileName
+		} else {
+			realFileName = fileName
+			fileName = c.String("file")
 		}
 
 		unencryptedSuffix := c.String("unencrypted-suffix")
@@ -794,7 +803,7 @@ func main() {
 			output, err = encrypt(encryptOpts{
 				OutputStore:       outputStore,
 				InputStore:        inputStore,
-				InputPath:         fileName,
+				InputPath:         realFileName,
 				Cipher:            aes.NewCipher(),
 				UnencryptedSuffix: unencryptedSuffix,
 				EncryptedSuffix:   encryptedSuffix,
@@ -815,7 +824,7 @@ func main() {
 			output, err = decrypt(decryptOpts{
 				OutputStore: outputStore,
 				InputStore:  inputStore,
-				InputPath:   fileName,
+				InputPath:   realFileName,
 				Cipher:      aes.NewCipher(),
 				Extract:     extract,
 				KeyServices: svcs,
